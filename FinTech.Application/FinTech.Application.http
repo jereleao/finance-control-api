@@ -1,0 +1,6 @@
+@FinTech.Application_HostAddress = http://localhost:5192
+
+GET {{FinTech.Application_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
