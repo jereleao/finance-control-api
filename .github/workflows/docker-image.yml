@@ -32,7 +32,7 @@ jobs:
         with:
           file: ./FinTech.Application/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: jereleao/fintechapplication:latest
 
       
