@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.Infra.Data.Repositories;
 
-public class CurrencyRepository(AppDbContext context) : BaseRepository<Currency>(context), ICurrencyRepository
+public class CurrencyRepository(ApplicationDbContext context) : BaseRepository<Currency>(context), ICurrencyRepository
 {
     public async Task<Currency?> GetByIdAsync(string id)
     {

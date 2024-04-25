@@ -10,9 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.Infra.Data.Repositories
 {
-    public class BaseRepository<T>(AppDbContext context) : IRepository<T> where T : class
+    public class BaseRepository<T>(ApplicationDbContext context) : IRepository<T> where T : class
     {
-        internal readonly AppDbContext _context = context;
+        internal readonly ApplicationDbContext _context = context;
         internal readonly DbSet<T> _dbSet = context.Set<T>();
 
         public async Task<T> CreateAsync(T entity)

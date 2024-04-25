@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using FinTech.Infra.Data.Context;
 using FinTech.Domain.Interfaces;
 using FinTech.Infra.Data.Repositories;
+using Microsoft.AspNetCore.Identity;
+using FinTech.Domain.Entities;
 
 namespace FinTech.Infra.IoC;
 
@@ -11,9 +13,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(databaseName: "AuthorDb")
-        //options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"),
-        //b => b.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+        string connectionString = Environment.GetEnvironmentVariable("MYSQL_CONN_STRING") ?? string.Empty;
+
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
         );
 
         services.AddScoped<IAccountRepository, AccountRepository>();
@@ -22,7 +25,6 @@ public static class DependencyInjection
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
         services.AddScoped<IOperationRepository, OperationRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }

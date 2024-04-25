@@ -14,6 +14,8 @@ namespace FinTech.Infra.Data.EntitiesConfiguration
         public void Configure(EntityTypeBuilder<Currency> builder)
         {
             builder.HasKey(t => t.Id);
+
+            builder.Property(t => t.CurrentRatio).HasColumnType("decimal(5,2)").IsRequired();
         }
     }
 }

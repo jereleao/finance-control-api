@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.Infra.Data.Repositories;
 
-public class OperationRepository(AppDbContext context) : BaseRepository<Operation>(context), IOperationRepository
+public class OperationRepository(ApplicationDbContext context) : BaseRepository<Operation>(context), IOperationRepository
 {
     
 }

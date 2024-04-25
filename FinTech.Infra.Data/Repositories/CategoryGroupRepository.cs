@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.Infra.Data.Repositories;
 
-public class CategoryGroupRepository(AppDbContext context) : BaseRepository<CategoryGroup>(context), ICategoryGroupRepository
+public class CategoryGroupRepository(ApplicationDbContext context) : BaseRepository<CategoryGroup>(context), ICategoryGroupRepository
 {
     
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using FinTech.Domain.Validation;
 using FluentValidation;
 
@@ -14,15 +10,15 @@ public sealed class Account : Entity
     public string Name { get; private set; }
     public int? ExpireDay { get; private set; }
     public int? PaymentDay { get; private set; }
-    public int UserId { get; private set; }
-    public User User { get; private set; }
+    public string UserId { get; private set; }
+    public ApplicationUser User { get; private set; }
     public ICollection<Transaction> OutTransactions { get; private set; }
     public ICollection<Transaction> InTransactions { get; private set; }
 
     /// <summary>
     /// Constructor for Entity Framework
     /// </summary>
-    public Account(int id, string name, int? expireDay, int? paymentDay, int userId) 
+    public Account(int id, string name, int? expireDay, int? paymentDay, string userId) 
     { 
         Id = id;
         Name = name;
@@ -33,7 +29,7 @@ public sealed class Account : Entity
         validator.ValidateAndThrow(this);
     }
 
-    public Account(string name, int expireDay, int paymentDay, User user)
+    public Account(string name, int expireDay, int paymentDay, ApplicationUser user)
     {
         Name = name;
         ExpireDay = expireDay;
@@ -44,7 +40,7 @@ public sealed class Account : Entity
         validator.ValidateAndThrow(this);
     }
 
-    public Account(string name, User user)
+    public Account(string name, ApplicationUser user)
     {
         Name = name;
         UserId = user.Id;

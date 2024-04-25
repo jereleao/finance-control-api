@@ -3,18 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinTech.Application", "FinTech.Application\FinTech.Application.csproj", "{56E48301-66C3-4EA3-BF1B-9174E5675275}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinTech.Application", "FinTech.Application\FinTech.Application.csproj", "{56E48301-66C3-4EA3-BF1B-9174E5675275}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0508DC77-F2ED-44AB-B2C3-17C53F5830EE} = {0508DC77-F2ED-44AB-B2C3-17C53F5830EE}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinTech.Domain", "FinTech.Domain\FinTech.Domain.csproj", "{E3160BD7-0C13-417F-B1B6-604E5E423211}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinTech.Domain", "FinTech.Domain\FinTech.Domain.csproj", "{E3160BD7-0C13-417F-B1B6-604E5E423211}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinTech.Infra.Data", "FinTech.Infra.Data\FinTech.Infra.Data.csproj", "{F8DC3D90-FDCF-439A-A8C5-17FF0586538F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinTech.Infra.Data", "FinTech.Infra.Data\FinTech.Infra.Data.csproj", "{F8DC3D90-FDCF-439A-A8C5-17FF0586538F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinTech.Infra.IoC", "FinTech.Infra.IoC\FinTech.Infra.IoC.csproj", "{0508DC77-F2ED-44AB-B2C3-17C53F5830EE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FintTech.Core", "FintTech.Core\FintTech.Core.csproj", "{1E9B21A0-9641-4582-945C-49B0F5C39053}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FinTech.Infra.IoC", "FinTech.Infra.IoC\FinTech.Infra.IoC.csproj", "{0508DC77-F2ED-44AB-B2C3-17C53F5830EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -38,10 +36,6 @@ Global
 		{0508DC77-F2ED-44AB-B2C3-17C53F5830EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0508DC77-F2ED-44AB-B2C3-17C53F5830EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0508DC77-F2ED-44AB-B2C3-17C53F5830EE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1E9B21A0-9641-4582-945C-49B0F5C39053}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1E9B21A0-9641-4582-945C-49B0F5C39053}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1E9B21A0-9641-4582-945C-49B0F5C39053}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1E9B21A0-9641-4582-945C-49B0F5C39053}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

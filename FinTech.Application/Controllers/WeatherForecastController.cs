@@ -1,52 +1,73 @@
 using FinTech.Domain.Entities;
 using FinTech.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 
 
-namespace FinTech.Application.Controllers
+namespace FinTech.Application.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class WeatherForecastController : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    private readonly ILogger<WeatherForecastController> _logger;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public WeatherForecastController(
+        ILogger<WeatherForecastController> logger, 
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager
+    )
     {
-        private static readonly string[] Summaries =
-        [
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        ];
+        _logger = logger;
+        _signInManager = signInManager;
+        _userManager = userManager;
+    }
 
-        private readonly ILogger<WeatherForecastController> _logger;
-        private readonly IUserRepository _userRepository;
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> Get()
+    {
+        var user = new ApplicationUser { Email = "jereleao@gmail.com", UserName = "Jere" };
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger, IUserRepository userRepository)
-        {
-            _logger = logger;
-            _userRepository = userRepository;
-        }
+        user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, "passS2");
 
-        [HttpGet]
-        public async Task<IActionResult> Get()
-        {
-            var user = new User("Jeremias", "jeremaios@gmail.com", "123456");
+        await _userManager.CreateAsync(user);
 
-            var account = new Account("Cash", user);
+        await _signInManager.SignInAsync(user, isPersistent: false);
 
-            user.Accounts.Add(account);
+        //var account = new Account("Cash", user);
 
-            await _userRepository.CreateAsync(user);
+        //user.Accounts.Add(account);
 
-            var users = _userRepository.GetAsync();
+        //await _userService.CreateAsync(user);
 
-            var result = users.Result;
+        //var users = _userService.GetAsync();
 
-            var list = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+        //var result = users.Result;
 
-            return Ok(list);
-        }
+        return Ok("OK");
+    }
+
+    [HttpGet]
+    [Authorize]
+    [Route("au")]
+    public async Task<IActionResult> GetAuthorized()
+    {
+        var loggedUser = await _userManager.GetUserAsync(User);
+
+        var account = new Account("Cash", loggedUser);
+
+        //var saved = await _accountRepository.CreateAsync(account);
+
+        //await _userService.CreateAsync(user);
+
+        //var users = _userService.GetAsync();
+
+        //var result = users.Result;
+
+        return Ok("OK");
     }
 }

@@ -24,7 +24,7 @@ public class OperationValidator : AbstractValidator<Operation>
 
         RuleFor(e => e.CategoryId).NotEmpty();
         RuleFor(e => e.IsForecast).NotNull();
-        RuleFor(e => e.CreatedBy).NotNull();
+        //RuleFor(e => e.CreatedBy).NotNull();
         RuleFor(e=> e.CreatedAt).NotNull();
     }
 }

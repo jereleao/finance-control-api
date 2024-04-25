@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinTech.Infra.Data.Repositories;
 
-public class AccountRepository(AppDbContext context) : BaseRepository<Account>(context), IAccountRepository
+public class AccountRepository(ApplicationDbContext context) : BaseRepository<Account>(context), IAccountRepository
 {
     
 }
