@@ -1,16 +1,15 @@
 using System.Text;
+using System.Diagnostics;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.WebUtilities;
-using FinTech.Domain.Entities;
-using FinTech.Application.Messages;
-using System.Net;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Builder;
-using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Authentication.BearerToken;
+using FinTech.Domain.Entities;
 
 
 
@@ -49,7 +48,7 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     [AllowAnonymous]
-    public async Task<IActionResult> Register([FromBody] Data.RegisterRequest registration)
+    public async Task<Results<Ok, ValidationProblem>> Register([FromBody] Data.RegisterRequest registration)
     {
         if (!_userManager.SupportsUserEmail)
         {
@@ -61,7 +60,7 @@ public class AuthController(
 
         if (string.IsNullOrEmpty(email) || !_emailAddressAttribute.IsValid(email))
         {
-            return BadRequest(_userManager.ErrorDescriber.InvalidEmail(email).ToError());
+            return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidEmail(email)));
         }
 
         var user = new ApplicationUser();
@@ -73,19 +72,19 @@ public class AuthController(
 
         if (!result.Succeeded)
         {
-            return BadRequest(result.ToString());
+            return CreateValidationProblem(result);
         }
 
         await SendConfirmationEmailAsync(user, Request.HttpContext, email);
 
-        return Ok();
+        return TypedResults.Ok();
     }
 
     [HttpPost("login")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [AllowAnonymous]
-    public async Task<IActionResult> Login([FromBody] Data.LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
+    public async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> Login([FromBody] Data.LoginRequest login, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
     {
         var useCookieScheme = (useCookies == true) || (useSessionCookies == true);
         var isPersistent = (useCookies == true) && (useSessionCookies != true);
@@ -98,7 +97,7 @@ public class AuthController(
         else
             user = await _userManager.FindByNameAsync(login.Login);
 
-        if (user is null) return Unauthorized();
+        if (user is null) return TypedResults.Problem(statusCode: StatusCodes.Status401Unauthorized);
 
         var result = await _signInManager.PasswordSignInAsync(user, login.Password, isPersistent, lockoutOnFailure: true);
 
@@ -116,18 +115,18 @@ public class AuthController(
 
         if (!result.Succeeded)
         {
-            return Unauthorized(result.ToString());
+            return TypedResults.Problem(result.ToString(), statusCode: StatusCodes.Status401Unauthorized);
         }
 
         // The signInManager already produced the needed response in the form of a cookie or bearer token.
-        return NoContent();
+        return TypedResults.Empty;
     }
 
     //[HttpPost("refresh")]
     //[ProducesResponseType(StatusCodes.Status204NoContent)]
     //[ProducesResponseType(StatusCodes.Status401Unauthorized)]
     //[AllowAnonymous]
-    //public async Task<IActionResult> Refresh([FromBody] RefreshRequest refreshRequest)
+    //public async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> Refresh([FromBody] RefreshRequest refreshRequest)
     //{
     //    var refreshTokenProtector = bearerTokenOptions.Get(IdentityConstants.BearerScheme).RefreshTokenProtector;
     //    var refreshTicket = refreshTokenProtector.Unprotect(refreshRequest.RefreshToken);
@@ -151,12 +150,12 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [EndpointName($"{nameof(AuthController)}-ConfirmEmaill")]
     [AllowAnonymous]
-    public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string code, [FromQuery] string? changedEmail)
+    public async Task<Results<ContentHttpResult, UnauthorizedHttpResult>> ConfirmEmail([FromQuery] string userId, [FromQuery] string code, [FromQuery] string? changedEmail)
     {
         if (await _userManager.FindByIdAsync(userId) is not { } user)
         {
             // We could respond with a 404 instead of a 401 like Identity UI, but that feels like unnecessary information.
-            return Unauthorized();
+            return TypedResults.Unauthorized();
         }
 
         try
@@ -165,7 +164,7 @@ public class AuthController(
         }
         catch (FormatException)
         {
-            return Unauthorized();
+            return TypedResults.Unauthorized();
         }
 
         IdentityResult result;
@@ -188,30 +187,30 @@ public class AuthController(
 
         if (!result.Succeeded)
         {
-            return Unauthorized();
+            return TypedResults.Unauthorized();
         }
 
-        return Ok();
+        return TypedResults.Text("Thank you for confirming your email.");
     }
 
     [HttpPost("resendConfirmationEmail")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [AllowAnonymous]
-    public async Task<IActionResult> ResendConfirmationEmail([FromBody] ResendConfirmationEmailRequest resendRequest)
+    public async Task<Results<Ok, ValidationProblem>> ResendConfirmationEmail([FromBody] ResendConfirmationEmailRequest resendRequest)
     {
         if (await _userManager.FindByEmailAsync(resendRequest.Email) is not { } user)
         {
-            return Ok();
+            return TypedResults.Ok();
         }
 
         await SendConfirmationEmailAsync(user, Request.HttpContext, resendRequest.Email);
-        return Ok();
+        return TypedResults.Ok();
     }
 
     //[HttpPost("forgotPassword")]
     //[ProducesResponseType(StatusCodes.Status200OK)]
     //[AllowAnonymous]
-    //public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest resetRequest)
+    //public async Task<Results<Ok, ValidationProblem>> ForgotPassword([FromBody] ForgotPasswordRequest resetRequest)
     //{
     //    var user = await _userManager.FindByEmailAsync(resetRequest.Email);
 
@@ -225,14 +224,14 @@ public class AuthController(
 
     //    // Don't reveal that the user does not exist or is not confirmed, so don't return a 200 if we would have
     //    // returned a 400 for an invalid code given a valid user email.
-    //    return Ok();
+    //    return TypedResults.Ok();
     //}
 
     [HttpPost("resetPassword")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [AllowAnonymous]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest resetRequest)
+    public async Task<Results<Ok, ValidationProblem>> ResetPassword([FromBody] ResetPasswordRequest resetRequest)
     {
         var user = await _userManager.FindByEmailAsync(resetRequest.Email);
 
@@ -240,7 +239,7 @@ public class AuthController(
         {
             // Don't reveal that the user does not exist or is not confirmed, so don't return a 200 if we would have
             // returned a 400 for an invalid code given a valid user email.
-            return BadRequest(_userManager.ErrorDescriber.InvalidToken().ToError());
+            return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidToken()));
         }
 
         IdentityResult result;
@@ -251,15 +250,15 @@ public class AuthController(
         }
         catch (FormatException)
         {
-            return BadRequest(_userManager.ErrorDescriber.InvalidToken().ToError());
+            result = IdentityResult.Failed(userManager.ErrorDescriber.InvalidToken());
         }
 
         if (!result.Succeeded)
         {
-            return BadRequest(result.ToString());
+            return CreateValidationProblem(result);
         }
 
-        return Ok();
+        return TypedResults.Ok();
     }
 
     [HttpPost("manage/2fa")]
@@ -267,27 +266,30 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize]
-    public async Task<ActionResult<TwoFactorResponse>> Manage2fa([FromBody] TwoFactorRequest tfaRequest)
+    public async Task<Results<Ok<TwoFactorResponse>, ValidationProblem, NotFound>> Manage2fa([FromBody] TwoFactorRequest tfaRequest)
     {
         var userManager = _signInManager.UserManager;
         if (await userManager.GetUserAsync(User) is not { } user)
         {
-            return NotFound();
+            return TypedResults.NotFound();
         }
 
         if (tfaRequest.Enable == true)
         {
             if (tfaRequest.ResetSharedKey)
             {
-                return BadRequest(ErrorDescriber.CannotResetSharedKeyAndEnable());
+                return CreateValidationProblem("CannotResetSharedKeyAndEnable",
+                    "Resetting the 2fa shared key must disable 2fa until a 2fa token based on the new shared key is validated.");
             }
             else if (string.IsNullOrEmpty(tfaRequest.TwoFactorCode))
             {
-                return BadRequest(ErrorDescriber.RequiresTwoFactor());
+                return CreateValidationProblem("RequiresTwoFactor",
+                    "No 2fa token was provided by the request. A valid 2fa token is required to enable 2fa.");
             }
             else if (!await userManager.VerifyTwoFactorTokenAsync(user, userManager.Options.Tokens.AuthenticatorTokenProvider, tfaRequest.TwoFactorCode))
             {
-                return BadRequest(ErrorDescriber.InvalidTwoFactorCode());
+                return CreateValidationProblem("InvalidTwoFactorCode",
+                    "The 2fa token provided by the request was invalid. A valid 2fa token is required to enable 2fa.");
             }
 
             await userManager.SetTwoFactorEnabledAsync(user, true);
@@ -326,7 +328,7 @@ public class AuthController(
             }
         }
 
-        return Ok(new TwoFactorResponse
+        return TypedResults.Ok(new TwoFactorResponse
         {
             SharedKey = key,
             RecoveryCodes = recoveryCodes,
@@ -341,19 +343,14 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize]
-    public async Task<ActionResult<Data.InfoResponse>> ManageGetInfo()
+    public async Task<Results<Ok<Data.InfoResponse>, ValidationProblem, NotFound>> ManageGetInfo()
     {
         if (await _userManager.GetUserAsync(User) is not { } user)
         {
-            return NotFound();
+            return TypedResults.NotFound();
         }
 
-        return Ok(new
-        {
-            Name = await _userManager.GetUserNameAsync(user) ?? throw new NotSupportedException("Users must have a name."),
-            Email = await _userManager.GetEmailAsync(user) ?? throw new NotSupportedException("Users must have an email."),
-            IsEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user),
-        });
+        return TypedResults.Ok(await CreateInfoResponseAsync(user, _userManager));
     }
 
     [HttpPost("manage/info")]
@@ -361,29 +358,30 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize]
-    public async Task<ActionResult<Data.InfoResponse>> ManagePostInfo([FromBody] InfoRequest infoRequest)
+    public async Task<Results<Ok<Data.InfoResponse>, ValidationProblem, NotFound>> ManagePostInfo([FromBody] InfoRequest infoRequest)
     {
         if (await _userManager.GetUserAsync(User) is not { } user)
         {
-            return NotFound();
+            return TypedResults.NotFound();
         }
 
         if (!string.IsNullOrEmpty(infoRequest.NewEmail) && !_emailAddressAttribute.IsValid(infoRequest.NewEmail))
         {
-            return BadRequest(_userManager.ErrorDescriber.InvalidEmail(infoRequest.NewEmail).ToError());
+            return CreateValidationProblem(IdentityResult.Failed(userManager.ErrorDescriber.InvalidEmail(infoRequest.NewEmail)));
         }
 
         if (!string.IsNullOrEmpty(infoRequest.NewPassword))
         {
             if (string.IsNullOrEmpty(infoRequest.OldPassword))
             {
-                return BadRequest(ErrorDescriber.OldPasswordRequired());
+                return CreateValidationProblem("OldPasswordRequired",
+                    "The old password is required to set a new password. If the old password is forgotten, use /resetPassword.");
             }
 
             var changePasswordResult = await _userManager.ChangePasswordAsync(user, infoRequest.OldPassword, infoRequest.NewPassword);
             if (!changePasswordResult.Succeeded)
             {
-                return BadRequest(changePasswordResult);
+                return CreateValidationProblem(changePasswordResult);
             }
         }
 
@@ -397,15 +395,12 @@ public class AuthController(
             }
         }
 
-        return Ok(new
-        {
-            Name = await _userManager.GetUserNameAsync(user) ?? throw new NotSupportedException("Users must have a name."),
-            Email = await _userManager.GetEmailAsync(user) ?? throw new NotSupportedException("Users must have an email."),
-            IsEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user),
-        });
+        return TypedResults.Ok(await CreateInfoResponseAsync(user, _userManager));
     }
 
-    async Task SendConfirmationEmailAsync(ApplicationUser user, HttpContext context, string email, bool isChange = false)
+    #region Private Methods
+
+    private async Task SendConfirmationEmailAsync(ApplicationUser user, HttpContext context, string email, bool isChange = false)
     {
         var code = isChange
             ? await _userManager.GenerateChangeEmailTokenAsync(user, email)
@@ -430,4 +425,50 @@ public class AuthController(
 
         //await _emailSender.SendConfirmationLinkAsync(user, email, HtmlEncoder.Default.Encode(confirmEmailUrl));
     }
+
+    private static ValidationProblem CreateValidationProblem(string errorCode, string errorDescription) =>
+        TypedResults.ValidationProblem(new Dictionary<string, string[]> {
+            { errorCode, [errorDescription] }
+        });
+
+    private static ValidationProblem CreateValidationProblem(IdentityResult result)
+    {
+        // We expect a single error code and description in the normal case.
+        // This could be golfed with GroupBy and ToDictionary, but perf! :P
+        Debug.Assert(!result.Succeeded);
+        var errorDictionary = new Dictionary<string, string[]>(1);
+
+        foreach (var error in result.Errors)
+        {
+            string[] newDescriptions;
+
+            if (errorDictionary.TryGetValue(error.Code, out var descriptions))
+            {
+                newDescriptions = new string[descriptions.Length + 1];
+                Array.Copy(descriptions, newDescriptions, descriptions.Length);
+                newDescriptions[descriptions.Length] = error.Description;
+            }
+            else
+            {
+                newDescriptions = [error.Description];
+            }
+
+            errorDictionary[error.Code] = newDescriptions;
+        }
+
+        return TypedResults.ValidationProblem(errorDictionary);
+    }
+
+    private static async Task<Data.InfoResponse> CreateInfoResponseAsync<TUser>(TUser user, UserManager<TUser> userManager)
+        where TUser : class
+    {
+        return new()
+        {
+            Name = await userManager.GetUserNameAsync(user) ?? throw new NotSupportedException("Users must have a name."),
+            Email = await userManager.GetEmailAsync(user) ?? throw new NotSupportedException("Users must have an email."),
+            IsEmailConfirmed = await userManager.IsEmailConfirmedAsync(user),
+        };
+    }
+
+    #endregion
 }
